@@ -2,6 +2,7 @@
 // Distributed under the MIT License.
 
 #include <iostream>					///< cout
+#include <cmath>
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <Eigen/IterativeLinearSolvers>
@@ -220,6 +221,17 @@ void MpsParticle::setParameters(MpsParticleSystem *PSystem) {
 	PSystem->hThreshold2 = 1.33*1.33*PSystem->partDist*PSystem->partDist;		///< Surface cte radius ARC
 	PSystem->dstThreshold2 = 2.0*PSystem->hThreshold2;							///< Surface cte radius ARC
 	PSystem->normThreshold2 = PSystem->normThreshold*PSystem->normThreshold;	///< Surface cte Normal
+	PSystem->particleVolume = pow(PSystem->partDist, PSystem->dim);
+	if(PSystem->pairwiseReOverDx > PSystem->epsilonZero) {
+		PSystem->reCapillary = PSystem->pairwiseReOverDx * PSystem->partDist;
+		PSystem->reCapillary2 = PSystem->reCapillary * PSystem->reCapillary;
+	}
+	PSystem->cosContactAngle = cos(PSystem->contactAngle);
+	PSystem->pairwiseStrength = PSystem->pairwiseCSigma * PSystem->surfaceTension * PSystem->partDist;
+	PSystem->pairwiseStrengthWall = PSystem->pairwiseStrength * (1.0 + PSystem->cosContactAngle) * PSystem->pairwiseWettingScale;
+	if(PSystem->historyStep <= 0) {
+		PSystem->historyStep = PSystem->iterOutput;
+	}
 	
 	//cout << "lo: " << partDist << " m, dt: " << timeStep << " s, PND0Small: " << pndSmallZero << " PND0Large: ";
 	//cout << pndLargeZero << " PND0Grad: " << pndGradientZero << " lambda: " << lambdaZero << std::endl;

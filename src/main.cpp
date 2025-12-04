@@ -47,12 +47,15 @@
 #include "MpsBoundaryCondition.h"
 #include "MpsVectorMatrix.h"
 #include "MpsParticleVelPos.h"
+#include "physics/PairwiseCapillary.h"
+#include "post/Diagnostics.h"
 
 void initMesh(MpsParticleSystem* partSyst, MpsParticle* part, PolygonMesh* mesh, 
 	MpsPndNeigh* pndNeigh, MpsInputOutput* io, MpsBucket* buck);
 void mainLoopOfSimulation(MpsParticleSystem* partSyst, MpsParticle* part, PolygonMesh* mesh, MpsInputOutput* io, 
 	MpsBucket* buck, MpsPndNeigh* partPndNeig, MpsPressure* partPress, MpsShifting* partShift, MpsViscosity* partVisc,
-	MpsParticleCollision* partColl, MpsBoundaryCondition* boundCond, MpsVectorMatrix* vectMatr, MpsParticleVelPos* partVelPos);
+	MpsParticleCollision* partColl, MpsBoundaryCondition* boundCond, MpsVectorMatrix* vectMatr, MpsParticleVelPos* partVelPos,
+	PairwiseCapillary* pairwiseCapillary, Diagnostics* diagnostics);
 
 
 // Global variables
@@ -94,6 +97,8 @@ int main( int argc, char** argv) {
 	MpsBoundaryCondition *boundaryConditions = nullptr;	///< MpsBoundaryCondition engine
 	MpsVectorMatrix *vectorMatrix = nullptr;			///< MpsVectorMatrix engine
 	MpsParticleVelPos *particleVelPos = nullptr;		///< MpsParticleVelPos engine
+	PairwiseCapillary *pairwiseCapillary = nullptr;		///< Pairwise capillary engine
+	Diagnostics *diagnostics = nullptr;					///< Diagnostics/post-processing helper
 
 	// Creates MpsParticleSystem class
 	particleSystem = new MpsParticleSystem();
@@ -150,6 +155,10 @@ int main( int argc, char** argv) {
 	vectorMatrix = new MpsVectorMatrix();
 	// Creates MpsParticleVelPos class
 	particleVelPos = new MpsParticleVelPos();
+	// Creates pairwise capillary class
+	pairwiseCapillary = new PairwiseCapillary();
+	// Creates diagnostics helper
+	diagnostics = new Diagnostics();
 
 	printf("Initial Step... ");
 	// Updates variables at 0th step
@@ -184,6 +193,9 @@ int main( int argc, char** argv) {
 	inputOutput->deleteDirectoryFiles();
 	// Writes VTK file of buckets
 	inputOutput->writeBuckets(particleSystem, particles);
+	// Initialize diagnostics/history writer
+	diagnostics->initialize(particleSystem, particles);
+	diagnostics->sample(particleSystem, particles);
 
 	printf("OK\n");
 
@@ -193,7 +205,7 @@ int main( int argc, char** argv) {
 	///////////////////////////
 	mainLoopOfSimulation(particleSystem, particles, solidMesh, inputOutput, 
 		buckets, particlePndNeigh, particlePress, particleShifting, particleViscosity, 
-		particleCollision, boundaryConditions, vectorMatrix, particleVelPos);
+		particleCollision, boundaryConditions, vectorMatrix, particleVelPos, pairwiseCapillary, diagnostics);
 	
 	// Deallocate memory block
 	free(nodeFRWX); free(nodeFRWY); free(nodeFRWZ);
@@ -210,6 +222,11 @@ int main( int argc, char** argv) {
 	delete boundaryConditions;
 	delete vectorMatrix;
 	delete particleVelPos;
+	if(diagnostics != nullptr) {
+		diagnostics->finalize();
+		delete diagnostics;
+	}
+	delete pairwiseCapillary;
 
 	printf("End PolyMPS.\n");
 	return 0;
@@ -220,7 +237,8 @@ int main( int argc, char** argv) {
 // Class PolygonMesh: Polygons from the point of view of particles (mps)
 void mainLoopOfSimulation(MpsParticleSystem* partSyst, MpsParticle* part, PolygonMesh* mesh, MpsInputOutput* io, 
 	MpsBucket* buck, MpsPndNeigh* partPndNeig, MpsPressure* partPress, MpsShifting* partShift, MpsViscosity* partVisc,
-	MpsParticleCollision* partColl, MpsBoundaryCondition* boundCond, MpsVectorMatrix* vectMatr, MpsParticleVelPos* partVelPos) {
+	MpsParticleCollision* partColl, MpsBoundaryCondition* boundCond, MpsVectorMatrix* vectMatr, MpsParticleVelPos* partVelPos,
+	PairwiseCapillary* pairwiseCapillary, Diagnostics* diagnostics) {
 
 	// string -> char
 	char *output_folder_char = nullptr;
@@ -228,6 +246,24 @@ void mainLoopOfSimulation(MpsParticleSystem* partSyst, MpsParticle* part, Polygo
 	
 	// Break if simulation reaches the final time
 	while(true) {
+		// Adjust output interval if iterOutputTime is set (优先使用基于时间的输出)
+		if(partSyst->iterOutputTime > 0.0) {
+			static bool outputIntervalWarned = false;
+			int intervalSteps = (int)(partSyst->iterOutputTime / partSyst->timeStep);
+			if(intervalSteps < 1) intervalSteps = 1;
+			const double effectiveDt = intervalSteps * partSyst->timeStep;
+			if(!outputIntervalWarned) {
+				if(std::fabs(effectiveDt - partSyst->iterOutputTime) > 1e-12) {
+					printf("Warning: iter_output_time=%.6e s 不是 time_step=%.6e s 的整数倍；实际输出间隔将使用 %d 步 (%.6e s)。\n",
+						partSyst->iterOutputTime, partSyst->timeStep, intervalSteps, effectiveDt);
+				} else {
+					printf("Info: 采用 iter_output_time=%.6e s，对应 %d 步（time_step=%.6e s）。\n",
+						partSyst->iterOutputTime, intervalSteps, partSyst->timeStep);
+				}
+				outputIntervalWarned = true;
+			}
+			partSyst->iterOutput = intervalSteps;
+		}
 
 		// Display simulation informations at each 100 iterations
 		io->displayInfo(partSyst, part, partPress, 100);
@@ -311,6 +347,11 @@ void mainLoopOfSimulation(MpsParticleSystem* partSyst, MpsParticle* part, Polygo
 				part->distParticleWall2, part->pndWallContribution, part->numNeighWallContribution, partNearMesh, part->particleNearWall);
 
 			partPndNeig->calcWallNPCD(partSyst, part, buck);	///< NPCD PND due to the polygon wall
+		}
+
+		// Pairwise capillary forces (liquid-liquid and liquid-wall)
+		if(pairwiseCapillary != nullptr) {
+			pairwiseCapillary->compute(partSyst, part, buck);
 		}
 
 		// Compute correction matrix
@@ -458,6 +499,9 @@ void mainLoopOfSimulation(MpsParticleSystem* partSyst, MpsParticle* part, Polygo
 		// Update iteration and time
 		partSyst->numOfIterations++;
 		partSyst->timeCurrent += partSyst->timeStep;
+		if(diagnostics != nullptr) {
+			diagnostics->sample(partSyst, part);
+		}
 
 		// Break if simulation reachs the final time
 		if(partSyst->timeCurrent > partSyst->timeSimulation ) {

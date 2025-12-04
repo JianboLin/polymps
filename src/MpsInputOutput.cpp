@@ -11,6 +11,7 @@
 #include <experimental/filesystem> 	///< numeric_limits
 #include <fstream>		///<> std::ofstream std::ifstream
 #include <iostream>					///< cout
+#include <cmath>
 #include <sys/stat.h>	///< mkdir for Linux
 #include <sys/time.h>	///< gettimeofday
 #include "json.hpp"		///< json input file
@@ -152,6 +153,28 @@ void MpsInputOutput::readInputFile(MpsParticleSystem *PSystem, MpsParticle *Part
 			}
 			catch (json::out_of_range& e) {
 				cout << e.what() << '\n';
+				PSystem->KNM_VS2 = PSystem->KNM_VS1;
+				PSystem->DNS_FL1 = PSystem->densityFluid;
+				PSystem->DNS_FL2 = PSystem->densityFluid;
+				PSystem->DNS_SDT = PSystem->densityWall;
+				PSystem->N = 1.0;
+				PSystem->MEU0 = PSystem->KNM_VS1 * PSystem->densityFluid;
+				PSystem->PHI_1 = 0.541;
+				PSystem->PHI_WAL = 0.541;
+				PSystem->PHI_BED = 0.541;
+				PSystem->PHI_2 = 0.6;
+				PSystem->cohes = 0.0;
+				PSystem->Fraction_method = 2;
+				PSystem->DG = 0.0035;
+				PSystem->I0 = 0.75;
+				PSystem->mm = 100.0;
+				PSystem->stress_calc_method = 1;
+				PSystem->visc_itr_num = 1;
+				PSystem->visc_error = 0.0;
+				PSystem->visc_ave = 0.0;
+				PSystem->Cd = 0.47;
+				PSystem->VF_min = 0.25;
+				PSystem->VF_max = 0.65;
 			}
 			
 			try {
@@ -179,6 +202,7 @@ void MpsInputOutput::readInputFile(MpsParticleSystem *PSystem, MpsParticle *Part
 			vtuOutputFoldername = 	jpNames.value("vtu_output_folder", "oops");
 			forceTxtFilename = 		jpNames.value("forceTxt_file", "oops");
 			pressTxtFilename = 		jpNames.value("pressTxt_file", "oops");
+			PSystem->outputDir =	vtuOutputFoldername;
 		}
 		catch (json::out_of_range& e) {
 			cout << e.what() << '\n';
@@ -249,6 +273,7 @@ void MpsInputOutput::readInputFile(MpsParticleSystem *PSystem, MpsParticle *Part
 			PSystem->densityWall = 	jphysical.value("wall_density", 1000.0);
 			PSystem->KNM_VS1 = 		jphysical.value("kinematic_visc", 0.000001);
 			PSystem->fluidType = 	jphysical.value("fluid_type", 0);
+			PSystem->surfaceTension = jphysical.value("surface_tension", 0.0);
 
 			try {
 				const json jphysicalGrav = jphysical.at("gravity");
@@ -324,6 +349,50 @@ void MpsInputOutput::readInputFile(MpsParticleSystem *PSystem, MpsParticle *Part
 		catch (json::out_of_range& e) {
 			cout << e.what() << '\n';
 		}
+
+		// Pairwise capillary parameters
+		try {
+			const json jpairwise = je.at("pairwise");
+
+			PSystem->pairwiseCapillary = jpairwise.value("enable", true);
+			PSystem->pairwiseReOverDx = jpairwise.value("re_over_dx", 0.0);
+			PSystem->pairwiseCSigma = jpairwise.value("c_sigma", 0.0);
+			PSystem->pairwiseShortClip = jpairwise.value("short_clip", PSystem->pairwiseShortClip);
+			PSystem->pairwiseWettingScale = jpairwise.value("wetting_scale", PSystem->pairwiseWettingScale);
+		}
+		catch (json::out_of_range& e) {
+			cout << e.what() << '\n';
+			PSystem->pairwiseCapillary = false;
+		}
+		if(PSystem->pairwiseCSigma <= 0.0 || PSystem->pairwiseReOverDx <= 0.0 || PSystem->surfaceTension <= 0.0) {
+			PSystem->pairwiseCapillary = false;
+		}
+
+		// Wetting/substrate parameters
+		try {
+			const json jsubstrate = je.at("substrate");
+			double angleDeg = jsubstrate.value("contact_angle_deg", 90.0);
+			const double pi = 3.14159265358979323846;
+			PSystem->contactAngle = angleDeg/180.0*pi;
+			PSystem->substrateLevel = jsubstrate.value("level", PSystem->domainMinZ);
+		}
+		catch (json::out_of_range& e) {
+			cout << e.what() << '\n';
+			PSystem->contactAngle = 90.0/180.0*3.14159265358979323846;
+			PSystem->substrateLevel = PSystem->domainMinZ;
+		}
+
+		// Output control (diagnostics/history)
+		try {
+			const json joutput = je.at("output");
+			PSystem->historyStep = joutput.value("write_csv_every", PSystem->historyStep);
+			if(joutput.contains("write_vtk_every")) {
+				PSystem->iterOutput = joutput.value("write_vtk_every", PSystem->iterOutput);
+			}
+		}
+		catch (json::out_of_range& e) {
+			cout << e.what() << '\n';
+		}
 		
 		// Numerical parameters
 		try {
@@ -333,6 +402,7 @@ void MpsInputOutput::readInputFile(MpsParticleSystem *PSystem, MpsParticle *Part
 			PSystem->partDist = 		jnumerical.value("particle_dist", 0.01);
 			PSystem->timeStep = 		jnumerical.value("time_step", 0.0005);
 			PSystem->timeSimulation = 	jnumerical.value("final_time", 1.0);
+			PSystem->iterOutputTime = 	jnumerical.value("iter_output_time", 0.0);
 			PSystem->iterOutput = 		jnumerical.value("iter_output", 80);
 			PSystem->cflNumber = 		jnumerical.value("CFL_number", 0.2);
 			PSystem->weightType = 		jnumerical.value("weight_type", 0);
@@ -490,6 +560,10 @@ void MpsInputOutput::readInputFile(MpsParticleSystem *PSystem, MpsParticle *Part
 			}
 			catch (json::out_of_range& e) {
 				cout << e.what() << '\n';
+				PSystem->ghost = -1;
+				PSystem->fluid = 0;
+				PSystem->wall = 2;
+				PSystem->dummyWall = 3;
 			}
 
 			try {
@@ -501,6 +575,9 @@ void MpsInputOutput::readInputFile(MpsParticleSystem *PSystem, MpsParticle *Part
 			}
 			catch (json::out_of_range& e) {
 				cout << e.what() << '\n';
+				PSystem->surface = 1;
+				PSystem->inner = 0;
+				PSystem->other = -1;
 			}
 
 		}
@@ -688,6 +765,8 @@ void MpsInputOutput::readMpsParticleFile(MpsParticleSystem *PSystem, MpsParticle
 	// Vectors
 	Particles->acc = (double*)malloc(sizeof(double)*Particles->numParticles*3);			// Particle acceleration
 	Particles->accStar = (double*)malloc(sizeof(double)*Particles->numParticles*3);		// Particle acceleration due gravity and viscosity
+	Particles->accCapillary = (double*)malloc(sizeof(double)*Particles->numParticles*3);	// Particle acceleration due capillary force
+	Particles->accViscous = (double*)malloc(sizeof(double)*Particles->numParticles*3);	// Particle acceleration due viscosity
 	Particles->pos = (double*)malloc(sizeof(double)*Particles->numParticles*3);			// Particle position
 	Particles->vel = (double*)malloc(sizeof(double)*Particles->numParticles*3);			// Particle velocity
 	Particles->npcdDeviation = (double*)malloc(sizeof(double)*Particles->numParticles*3);		// NPCD deviation
@@ -779,7 +858,7 @@ void MpsInputOutput::readMpsParticleFile(MpsParticleSystem *PSystem, MpsParticle
 	
 	// Set vectors to zero
 	for(int i=0;i<Particles->numParticles*3;i++) {
-		Particles->acc[i]=0.0;Particles->accStar[i]=0.0;Particles->npcdDeviation[i]=0.0;
+		Particles->acc[i]=0.0;Particles->accStar[i]=0.0;Particles->accCapillary[i]=0.0;Particles->accViscous[i]=0.0;Particles->npcdDeviation[i]=0.0;
 		Particles->gradConcentration[i]=0.0;Particles->correcMatrixRow1[i]=0.0;Particles->correcMatrixRow2[i]=0.0;
 		Particles->correcMatrixRow3[i]=0.0;Particles->normal[i]=0.0;Particles->dvelCollision[i]=0.0;
 		Particles->particleAtWallPos[i]=0.0;Particles->mirrorParticlePos[i]=0.0;Particles->wallParticleForce1[i]=0.0;

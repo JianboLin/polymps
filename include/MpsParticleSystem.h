@@ -12,6 +12,9 @@
 
 //#define SHOW_FUNCT_NAME_PART	///print the function name from any location inside a C++ function (useful for investigating programs)
 
+#include <string>
+#include <limits>
+
 #pragma once
 
 /**
@@ -158,7 +161,23 @@ public:
 	double gravityX;		///< Gravity x (m/s2)
 	double gravityY;		///< Gravity y (m/s2)
 	double gravityZ;		///< Gravity z (m/s2)
-	
+	double surfaceTension;	///< Surface tension coefficient (N/m)
+	bool pairwiseCapillary;	///< Enable pairwise capillary model
+	double pairwiseCSigma;	///< c_sigma coefficient used in pairwise capillary model
+	double pairwiseReOverDx;///< Influence radius relative to particle spacing
+	double pairwiseShortClip;///< Short-range clipping factor (relative to particle spacing)
+	double pairwiseWettingScale;///< Scale factor for liquid-wall attraction to match target contact angle
+	double contactAngle;	///< Target contact angle (rad)
+	double cosContactAngle;	///< Cosine of the target contact angle
+	double pairwiseStrength;///< Liquid-liquid pairwise strength A_ll
+	double pairwiseStrengthWall;///< Liquid-wall pairwise strength A_wl
+	double reCapillary;		///< Influence radius for pairwise capillary force
+	double reCapillary2;	///< Influence radius squared for pairwise capillary force
+	double particleVolume;	///< Representative particle volume (or area in 2D)
+	double initialRadius;	///< Reference radius R0 for spreading factor beta
+	double substrateLevel;	///< Reference substrate height (m)
+	std::string outputDir;	///< Folder used for VTU/history outputs
+
 	// Rheological parameters
 	double KNM_VS2;			///< Kinematic viscosity phase 2 (m2/s)
 	double DNS_FL1;			///< Fluid particle density phase 1 (kg/m3)
@@ -188,6 +207,7 @@ public:
 	double partDist;		///< Average particle distance (m)
 	double timeStep;		///< Time step (s)
 	double timeSimulation;	///< Time of simulation (s)
+	double iterOutputTime;	///< Target time interval for outputs (s)
 	int iterOutput;			///< Number of iterations to determine the output interval
 	double cflNumber;		///< Courant (CFL) condition number
 	int weightType;			///< Weight function re/rij - 1 = 0; re/rij + rij/re - 2 = 1; re/rij - rij/re = 2; pow(1-rij/re,3.0) = 3;
@@ -285,6 +305,7 @@ public:
 	double restitutionCollision;///< Restitution related to Kinetic energy variation of the particles
 
 	// Numerical
+	int historyStep;	///< Interval (iterations) to write diagnostics history
 	double eps_reS;
 	double betaPnd;			///< Surface cte PND
 	double betaNeigh;		///< Surface cte Neighbors

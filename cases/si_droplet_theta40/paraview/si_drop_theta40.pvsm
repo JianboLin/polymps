@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<ServerManagerState version="5.11.0">
+  <ProxyCollection name="sources">
+    <Item id="0" name="fields_series" />
+    <Item id="1" name="history_csv" />
+  </ProxyCollection>
+  <ProxyCollection name="views">
+    <Item id="2" name="RenderView1" />
+    <Item id="3" name="XYChartView1" />
+  </ProxyCollection>
+  <Proxy group="sources" type="XMLUnstructuredGridReader" id="0">
+    <Property name="FileName" number_of_elements="1">
+      <Element index="0" value="../../output/si_droplet_theta40/output00000.vtu" />
+    </Property>
+    <Property name="FileNameData" number_of_elements="1">
+      <Element index="0" value="../../output/si_droplet_theta40/output00000.vtu" />
+    </Property>
+  </Proxy>
+  <Proxy group="sources" type="CSVReader" id="1">
+    <Property name="FileName" number_of_elements="1">
+      <Element index="0" value="../../output/si_droplet_theta40/history.csv" />
+    </Property>
+  </Proxy>
+  <Proxy group="views" type="RenderView" id="2">
+    <Property name="ViewSize" number_of_elements="2">
+      <Element index="0" value="1200" />
+      <Element index="1" value="600" />
+    </Property>
+  </Proxy>
+  <Proxy group="views" type="XYChartView" id="3">
+    <Property name="ViewSize" number_of_elements="2">
+      <Element index="0" value="1200" />
+      <Element index="1" value="400" />
+    </Property>
+  </Proxy>
+</ServerManagerState>

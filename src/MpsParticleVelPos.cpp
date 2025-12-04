@@ -27,6 +27,7 @@ void MpsParticleVelPos::predictionVelocityPosition(MpsParticleSystem *PSystem, M
 			//}
 		}
 		Particles->acc[i*3]=Particles->acc[i*3+1]=Particles->acc[i*3+2]=0.0;
+		Particles->accCapillary[i*3]=Particles->accCapillary[i*3+1]=Particles->accCapillary[i*3+2]=0.0;
 		Particles->dvelCollision[i*3]=Particles->dvelCollision[i*3+1]=Particles->dvelCollision[i*3+2]=0.0;
 		Particles->wallParticleForce1[i*3]=Particles->wallParticleForce1[i*3+1]=Particles->wallParticleForce1[i*3+2]=0.0;
 		Particles->wallParticleForce2[i*3]=Particles->wallParticleForce2[i*3+1]=Particles->wallParticleForce2[i*3+2]=0.0;

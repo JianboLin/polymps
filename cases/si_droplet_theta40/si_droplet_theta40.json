@@ -1,0 +1,116 @@
+{
+	"description": {
+		"_comment": "3.5 pL water drop on Si substrate, target contact angle 40 deg"
+	},
+	"flags": {
+		"wall_type": 1,
+		"fem_MESH": false,
+		"forced_MESH": false,
+		"output_VTU": {
+			"type": 0,
+			"freeSurfWall": true,
+			"pnd": true,
+			"neigh": false,
+			"deviation": false,
+			"concentration": false,
+			"auxiliar": false,
+			"non_newtonian": false
+		},
+		"output_TXT": {
+			"press": false,
+			"force": false
+		}
+	},
+	"pathNames": {
+		"particle_grid_file": "cases/si_droplet_theta40/si_droplet_theta40.grid",
+		"mesh_rigid_file": "cases/si_droplet_theta40/si_flat.stl",
+		"mesh_deformable_file": "cases/si_droplet_theta40/si_flat.stl",
+		"mesh_forced_file": "cases/si_droplet_theta40/si_flat.stl",
+		"vtu_output_folder": "output/si_droplet_theta40",
+		"forceTxt_file": "output/si_droplet_theta40/force.txt",
+		"pressTxt_file": "output/si_droplet_theta40/press.txt"
+	},
+	"domain": {
+		"min": { "x": -6.0e-05, "y": -6.0e-05, "z": 0.0 },
+		"max": { "x": 6.0e-05, "y": 6.0e-05, "z": 8.0e-05 },
+		"boundary": {
+			"type": 0,
+			"limit": 0,
+			"direction": { "x": false, "y": false, "z": false }
+		}
+	},
+	"physical": {
+		"fluid_density": 997.0,
+		"wall_density": 2330.0,
+		"kinematic_visc": 8.93e-7,
+		"surface_tension": 0.072,
+		"fluid_type": 0,
+		"rheological": {
+			"kinematic_visc_phase_2": 8.93e-7,
+			"fluid_density_phase_1": 997.0,
+			"fluid_density_phase_2": 997.0,
+			"sediment_density": 2330.0,
+			"power_law_index": 1.0,
+			"consistency_index": 0.0,
+			"phi": { "lower": 0.541, "wall": 0.541, "bed": 0.541, "second": 0.6 },
+			"cohes_coeff": 0.0,
+			"fraction_method": 2,
+			"grain_size": 0.0035,
+			"I0": 0.75,
+			"mm": 100.0,
+			"stress_calc_method": 1,
+			"viscosity": { "iter_num": 1, "error": 0.0, "average": 0.0 },
+			"drag_coeff": 0.47,
+			"volume_fraction": { "min": 0.25, "max": 0.65 }
+		},
+		"gravity": { "x": 0.0, "y": 0.0, "z": -9.81 }
+	},
+	"numerical": {
+		"dimension": 3,
+		"particle_dist": 1.0e-6,
+		"time_step": 5.0e-9,
+		"final_time": 1.0e-5,
+		"iter_output_time": 1.0e-7,
+		"iter_output": 10,
+		"CFL_number": 0.2,
+		"weight_type": 0,
+		"slip_condition": 0,
+		"effective_radius": { "small": 2.1, "large": 2.1 },
+		"gradient": { "type": 0, "correction": true, "relax_fact": 1.0 },
+		"mps_type": 2,
+		"explicit_mps": { "equation_state": { "speed_sound": 50.0, "gamma": 7.0 } },
+		"semi_implicit_mps": {
+			"solver_type": 0,
+			"weak_compressibility": { "alpha": 1.0e-6 },
+			"source_term": { "relax_pnd": 0.01 }
+		},
+		"particle_shifting": { "type": 0, "DRI": 0.01, "coef_A": 2.0, "mach_number": 0.1, "adj_vel_A": 0.9 },
+		"pnd": { "type": 0, "diffusive_coeff": 0.35 },
+		"wall_repulsive_force": {
+			"type": 2,
+			"re": 0.5,
+			"maxVel": 4.0,
+			"coefficient": { "Mitsume": 4.0e7, "Lennard-Jones": 2.0, "Monaghan-Kajtar": 1.0 },
+			"eps_re": 0.01
+		},
+		"free_surface_threshold": { "type": 1, "pnd": 0.90, "neigh": 0.85, "NPCD": 0.2, "ARC": 45.0, "normal": 0.2 },
+		"particle_collision": { "type": 0, "ratio": 0.2, "dist_limit_ratio": 0.85, "lambda": 0.2 },
+		"particle_type": { "ghost": -1, "fluid": 0, "wall": 2, "dummyWall": 3 },
+		"boundary_type": { "free_surface": 1, "inner": 0, "other": -1 }
+	},
+	"pairwise": {
+		"enable": true,
+		"re_over_dx": 2.0,
+		"c_sigma": 1e-6,
+		"short_clip": 1.0,
+		"wetting_scale": 1.0
+	},
+	"substrate": {
+		"contact_angle_deg": 40.0,
+		"level": 0.0
+	},
+	"output": {
+		"write_csv_every": 5,
+		"write_vtk_every": 10
+	}
+}
