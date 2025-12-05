@@ -142,6 +142,12 @@ After that, you can [run](#run) PolyMPS at any time, and type the name of the ne
 case_02
 ```
 
+## Si droplet on silicon (θ = 40°)
+- Build with CMake: `mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j`
+- Run the prepared case: `cd cases/si_droplet_theta40 && bash run.sh` (Python is used to generate the droplet grid and the script copies the JSON into `input/`)
+- Outputs are written to `output/si_droplet_theta40` with `history.csv` (t, R, H, β, KE, Diss, Wcap) and `output*.vtu`.
+- ParaView: `File -> Load State -> cases/si_droplet_theta40/paraview/si_drop_theta40.pvsm` and point it to the `output/si_droplet_theta40` folder if prompted.
+
 ## Output
 This code writes pvd (header file) and corresponding vtu files as output. Look in the [**output**](https://github.com/rubensamarojr/polymps/tree/master/output) directory.
 You can visualize them by open the pvd file with [Paraview](https://www.paraview.org) :eyes:.

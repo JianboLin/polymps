@@ -1311,9 +1311,9 @@ void MpsPressure::calcPressGradient(MpsParticleSystem *PSystem, MpsParticle *Par
 //		Particles->acc[i*3+1]=PSystem->relaxPress*accY*invDns[partType::FLUID]*PSystem->coeffPressGrad;
 //		Particles->acc[i*3+2]=PSystem->relaxPress*accZ*invDns[partType::FLUID]*PSystem->coeffPressGrad;
 		// Modified
-		Particles->acc[i*3  ]=PSystem->relaxPress*accX*PSystem->coeffPressGrad/Particles->RHO[i];
-		Particles->acc[i*3+1]=PSystem->relaxPress*accY*PSystem->coeffPressGrad/Particles->RHO[i];
-		Particles->acc[i*3+2]=PSystem->relaxPress*accZ*PSystem->coeffPressGrad/Particles->RHO[i];
+		Particles->acc[i*3  ] += PSystem->relaxPress*accX*PSystem->coeffPressGrad/Particles->RHO[i];
+		Particles->acc[i*3+1] += PSystem->relaxPress*accY*PSystem->coeffPressGrad/Particles->RHO[i];
+		Particles->acc[i*3+2] += PSystem->relaxPress*accZ*PSystem->coeffPressGrad/Particles->RHO[i];
 		/*if(PSystem->gradientCorrection == false) {
 			Particles->acc[i*3  ]=PSystem->relaxPress*accX*PSystem->coeffPressGrad/Particles->RHO[i];
 			Particles->acc[i*3+1]=PSystem->relaxPress*accY*PSystem->coeffPressGrad/Particles->RHO[i];
@@ -1609,4 +1609,3 @@ void MpsPressure::repulsiveForceMonaghanKajtar(double *force, const double *norm
 	cout << __PRETTY_FUNCTION__ << endl;
 #endif
 }
-

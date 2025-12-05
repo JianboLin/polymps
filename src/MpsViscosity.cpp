@@ -26,6 +26,7 @@ void MpsViscosity::calcViscosity(MpsParticleSystem *PSystem, MpsParticle *Partic
 		double posXi = Particles->pos[i*3  ];	double posYi = Particles->pos[i*3+1];	double posZi = Particles->pos[i*3+2];
 		double velXi = Particles->vel[i*3  ];	double velYi = Particles->vel[i*3+1];	double velZi = Particles->vel[i*3+2];
 		double posMirrorXi = Particles->mirrorParticlePos[i*3  ];	double posMirrorYi = Particles->mirrorParticlePos[i*3+1];	double posMirrorZi = Particles->mirrorParticlePos[i*3+2];
+		Particles->accViscous[i*3]=Particles->accViscous[i*3+1]=Particles->accViscous[i*3+2]=0.0;
 
 		int ix, iy, iz;
 		Buckets->bucketCoordinates(ix, iy, iz, posXi, posYi, posZi, PSystem);
@@ -83,9 +84,12 @@ void MpsViscosity::calcViscosity(MpsParticleSystem *PSystem, MpsParticle *Partic
 		// Modified
 		//if(PSystem->timeCurrent > 0.3) {
 		// coeffViscMultiphase = 2.0*PSystem->dim/(PSystem->pndLargeZero*PSystem->lambdaZero);
-		Particles->acc[i*3  ] = PSystem->coeffViscMultiphase*accX;
-		Particles->acc[i*3+1] = PSystem->coeffViscMultiphase*accY;
-		Particles->acc[i*3+2] = PSystem->coeffViscMultiphase*accZ;
+		Particles->accViscous[i*3  ] = PSystem->coeffViscMultiphase*accX;
+		Particles->accViscous[i*3+1] = PSystem->coeffViscMultiphase*accY;
+		Particles->accViscous[i*3+2] = PSystem->coeffViscMultiphase*accZ;
+		Particles->acc[i*3  ] = Particles->accViscous[i*3  ];
+		Particles->acc[i*3+1] = Particles->accViscous[i*3+1];
+		Particles->acc[i*3+2] = Particles->accViscous[i*3+2];
 		//}
 				
 		// Particles->accStar[i*3  ] = Particles->acc[i*3  ];

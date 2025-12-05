@@ -156,6 +156,8 @@ public:
 	double *vel;				///< Particle velocity
 	double *acc;				///< Particle acceleration
 	double *accStar;			///< Particle acceleration due gravity and viscosity
+	double *accCapillary;		///< Particle acceleration due to capillary forces
+	double *accViscous;			///< Particle acceleration due to viscosity
 	double *npcdDeviation;		///< NPCD deviation
 	double *gradConcentration;	///< Gradient of concentration
 	double *correcMatrixRow1;	///< Correction matrix - Row 1
