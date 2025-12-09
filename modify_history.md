@@ -1,11 +1,21 @@
 # 分支变更记录（相对于原始 master）
 
-## 1. 目标与背景
+## 2025-12-09
+### 构建便利性
+- 新增顶层 `Makefile`，调用 CMake 以简化构建：`make all` 自动在 `build/` 运行 `cmake -DCMAKE_BUILD_TYPE=Release ..` 并编译，`make clean` 清理 `build` 并删除 `CMakeCache.txt`，`make rebuild` = clean+all，`make configure` 仅运行 CMake 配置。现与 README 的“make clean; make all” 流程一致。
+
+### 力与能量算法说明（Equations.md 增补）
+- 增补压力梯度、粘性、重力、碰撞/墙面排斥、pairwise 表面张力/润湿的离散公式，明确 \(A_{ll}=c_\sigma \sigma \Delta x\)、\(A_{lw}=A_{ll}(1+\cos\theta)S_w\)、裁剪距离/影响半径等。
+- 说明能量诊断：动能、粘性功率累积 `Diss`、毛细功率累积 `Wcap`，以及调试量 `maxAccCap`/`capPower` 的含义。
+- 输出控制细节：`iter_output_time` 优先，若非 `time_step` 整倍则提示实际步长；历史时间使用真实 `timeCurrent`。
+
+## 2025-12-04
+### 1. 目标与背景
 - 新增硅液滴 θ=40° 接触角案例，强调能量/接触角诊断与可视化，支持基于时间的输出间隔，便于调参与对照实验。
 - 增强润湿/毛细模型（pairwise）以更贴近目标接触角；收缩计算域减少无关体积。
 - 提升运行便利性：脚本生成网格、运行、绘图；增加 OpenMP 线程可配与编译优化。
 
-## 2. 主要变化概览
+### 2. 主要变化概览
 - 诊断输出：`history.csv` 增列几何/能量指标，计算接触角 `theta_deg`（2*atan(H/R)）。
 - 毛细润湿：增加液-壁亲和缩放 `wetting_scale`，可通过 JSON 配置。
 - 输出控制：新增 `iter_output_time`，优先按时间间隔确定输出步长，并给出提示/警告。
@@ -13,7 +23,7 @@
 - 可视化：新增 `plot_history.py`，从 `history.csv` 出图（R/H/beta/KE/Diss/Wcap）。
 - 编译：CMake 默认开启 `-O3 -march=native -ffast-math`。
 
-## 3. 文件与目录调整
+### 3. 文件与目录调整
 - 新增 `modify_history.md`（本文件）。
 - `cases/si_droplet_theta40/`：`generate_grid.py`、`si_droplet_theta40.json`、`run.sh`、`plot_history.py`、网格/STL/Paraview 状态等。
 - `output/si_droplet_theta40/`：历史输出示例 `history.csv`、VTU。
@@ -26,7 +36,7 @@
   - `src/post/Diagnostics.*`
 - 构建：`CMakeLists.txt` 优化标志更新。
 
-## 4. 关键功能改动
+### 4. 关键功能改动
 - Diagnostics (`src/post/Diagnostics.*`)
   - 输出列：`t,R,H,beta,theta_deg,KE,Diss,Wcap`。
   - 接触角估计：`theta_deg = 2*atan(H/R)`。
@@ -53,27 +63,22 @@
 - 绘图 (`plot_history.py`)
   - 读取 `history.csv`，一列多行子图，绘制 `R/H/beta/KE/Diss/Wcap` vs 时间。
 
-## 5. 编译与优化
+### 5. 编译与优化
 - `CMakeLists.txt` 现使用 `-O3 -march=native -ffast-math`，针对本机 CPU 开启向量化与松弛浮点规则；跨机器可移植性下降，必要时移除 `-march=native`。
 - 构建命令：`mkdir -p build && cd build && cmake .. && make -j`。
 
-## 6. 使用与运行示例
+### 6. 使用与运行示例
 - 编译：`cd build && cmake .. && make -j4`。
 - 运行案例：`bash cases/si_droplet_theta40/run.sh -omp 16`。
 - 产出：`output/si_droplet_theta40/history.csv`、`history_plot.png`、VTU 序列。
 - 输出间隔提示会在标准输出打印 Info/Warning，确认 `iter_output_time` 已生效。
 
-## 7.1 力与能量算法说明（Equations.md 增补）
-- 增补了压力梯度、粘性、重力、碰撞/墙面排斥、pairwise 表面张力/润湿的离散公式，明确 \(A_{ll}=c_\sigma \sigma \Delta x\)、\(A_{lw}=A_{ll}(1+\cos\theta)S_w\)、裁剪距离/影响半径等。
-- 说明了能量诊断：动能、粘性功率累积 `Diss`、毛细功率累积 `Wcap`，以及调试量 `maxAccCap`/`capPower` 的含义。
-- 输出控制细节：`iter_output_time` 优先，若非 `time_step` 整倍则提示实际步长；历史时间使用真实 `timeCurrent`。
-
-## 7. 已知问题/待验证
+### 7. 已知问题/待验证
 - 目标接触角 40° 的收敛仍偏高（~59°）；需要继续调节润湿参数（`wetting_scale`、`c_sigma` 等）或壁/自由面模型。
 - `history.csv` 中 `Wcap` 仍可能为 0，需进一步检查毛细功累积实现。
 - 更激进的编译优化可能导致不同平台数值差异，跨平台运行需评估。
 
-## 8. 输入案例整理与运行计划
+### 8. 输入案例整理与运行计划
 - 现有 `input/` 示例分组：  
   - Dam break (Lobovský)：`MpsInputExample.json`、`InputDamINC.json`、`InputDamWC.json`、`dam1610_h300_lo0p0050_INC/WC.json`  
   - 其他 Dam：`InputDamWall_INC.json`、`dam1610_BC.json`  
