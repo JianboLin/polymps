@@ -1,3 +1,0 @@
-/home/phylin/apps/polymps/build/CMakeFiles/polymps.dir
-/home/phylin/apps/polymps/build/CMakeFiles/edit_cache.dir
-/home/phylin/apps/polymps/build/CMakeFiles/rebuild_cache.dir
